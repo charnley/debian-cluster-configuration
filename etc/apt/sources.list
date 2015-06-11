@@ -1,0 +1,8 @@
+# USE LOCAL MIRROR
+deb http://192.168.10.1/debian/ jessie main
+deb-src http://192.168.10.1/debian/ jessie main
+
+# jessie-updates, previously known as 'volatile'
+deb http://192.168.10.1/debian/ jessie-updates main
+deb-src http://192.168.10.1/debian/ jessie-updates main
+
