@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# usage:
+# ./sunset_puppet_clean_cert <hostname>
+
+sudo puppet cert clean $1
+

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if [ $# -ne 2 ]
+then
+    echo "usage: sunset_slurm_down <nodename(s)> <reason>"
+fi
+
+scontrol update nodename=$1 state=down reason="$2"
+

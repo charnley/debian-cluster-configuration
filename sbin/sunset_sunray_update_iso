@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Note, if there is a kernel mismatch between apt-get and .iso
+# the installer on new nodes will crash. Then run this script.
+# Not needed for every sunset_sunray_update, only if new nodes fail
+# to install.
+# Best regards, Jimmy
+
+# Move to TFTP / PXE folder
+cd /srv/tftp
+
+# Remove old
+rm netboot.tar.gz
+
+# Get newest iso
+# Remmeber, sunray is build on debian 8 (jessie)
+wget http://ftp.nl.debian.org/debian/dists/jessie/main/installer-amd64/current/images/netboot/netboot.tar.gz
+
+# extract here (overwrite)
+tar -xvzf netboot.tar.gz
+
+# make symlink
+mv debian-installer/amd64/boot-screens/syslinux.cfg debian-installer/amd64/boot-screens/syslinux.backup.cfg
+ln sunray_syslinux.cfg debian-installer/amd64/boot-screens/syslinux.cfg
+

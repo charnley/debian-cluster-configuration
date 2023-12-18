@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Prolog (from slurm.conf)
+# Compute or front end node
+# slurmd daemon
+# SlurmdUser (normally user root)
+# First job or job step initiation on that node (by default); PrologFlags=Alloc will force the script to be executed at job allocation
+
+# SrunProlog (from slurm.conf) or srun --prolog
+# srun invocation node
+# srun command
+# User invoking srun command
+# Prior to launching job step
+
+
+# Create scratch folder
+mkdir /scratch/$SLURM_JOB_ID
+
+# TODO create scratch enviromental variable?
+

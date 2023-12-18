@@ -1,0 +1,25 @@
+#!/bin/bash
+
+run_cmd_on_node() {
+
+    node=$1
+    cmd="/opt/sbin/sunset_node_debconf_script > /opt/logs/$node\.log"
+
+    echo -n $node
+    if timeout 0.2 ping -c 1 -i 0.2 $node &> /dev/null
+    then
+        if ! ssh $node "$cmd"
+        then
+            echo " failed"
+        else
+            echo " updated"
+        fi
+    else
+        echo " down"
+    fi
+}
+
+export -f run_cmd_on_node
+
+grep -oh "\w*node\w*" /etc/hosts | grep -v "bmc" | parallel -j8 'run_cmd_on_node {}'
+

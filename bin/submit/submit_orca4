@@ -1,0 +1,63 @@
+#!/bin/bash
+QUEUE=$1
+CPUS=$2
+TOTAL_MEM=$3
+IN=$4
+
+# get the filename without the extension
+JOB=${IN%.*}
+
+
+# ændre macxore, og mem.
+tot_mem=$TOTAL_MEM"000"
+MEM_PER_CORE=$(($TOTAL_MEM/$CPUS))
+ 
+sed -i "s/.*maxcore.*/%maxcore $MEM_PER_CORE"000"/" $IN  
+#sed -i "s/.*pal.*/% pal nprocs $CPUS end/" $IN
+#taget fra stephans script
+sed -i '/! PAL/ d' $IN
+sed -i "1i\! PAL$CPUS" $IN
+
+
+SUBMIT=$JOB\.sh
+PWD=`pwd`
+
+cat > $SUBMIT <<!EOF
+#!/bin/bash
+#SBATCH --job-name=$JOB
+#SBATCH --partition=$QUEUE
+#SBATCH --time=64-00:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=$CPUS
+#SBATCH --mem=$TOTAL_MEM"GB"
+#SBATCH --error=$HOME/logs/job.%J.err
+#SBATCH --output=$HOME/logs/job.%J.out
+
+
+
+# Compiled openmpi with gcc 6.1.0
+OPEN_MPI_DIR="/opt/openmpi/openmpi-2.0.2_gcc-6.1.0"
+
+
+export LD_LIBRARY_PATH=/opt/openmpi/openmpi-2.0.2_gcc-6.1.0/lib:$LD_LIBRARY_PATH
+export PATH=/opt/openmpi/openmpi-2.0.2_gcc-6.1.0/bin:$PATH
+export ORCA_DIR=/opt/orca/4.0.0
+
+# set scratch dir
+SCRATCH=/scratch/\$SLURM_JOB_ID
+# make scratch dir
+mkdir -p \$SCRATCH || exit $?
+ 
+
+cd \$SCRATCH
+cp $PWD/$JOB.inp .
+\$ORCA_DIR/orca $JOB.inp > $PWD/$JOB.out
+
+# remove scratch folder
+rm -rf \$SCRATCH
+
+!EOF
+
+sbatch $SUBMIT
+rm $SUBMIT
+#drm $SUBMIT

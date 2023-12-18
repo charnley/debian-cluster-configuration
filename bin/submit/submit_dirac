@@ -1,0 +1,89 @@
+#!/bin/bash
+INJOB=$1
+INMOL=$2
+
+# get the filename without the extension
+
+JOB=${INJOB%.*} 
+MOL=${INMOL%.*} 
+
+# set queue, cores and memory
+QUEUE=coms    #comchem, coms or sauer 
+CORES=2
+MEM=1
+#echo $MEMTOTAL
+
+
+SUBMIT=qsub.tmp
+JOBDIR=`pwd`
+
+cat > $SUBMIT <<!EOF
+#!/bin/bash
+#SBATCH --job-name=$JOB
+#SBATCH -e `pwd`/logfile.err
+#SBATCH -o `pwd`/logfile.err
+##SBATCH --cpus-per-task=$CORES
+##SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --tasks-per-node=$CORES
+#SBATCH --mem=$MEM"gb"
+#SBATCH --time=10:00:00
+#SBATCH --partition=$QUEUE
+#SBATCH --no-requeue
+
+
+
+#source /opt/intel/composer_xe_2011_sp1.6.233/bin/ifortvars.sh intel64
+#source /opt/intel/composer_xe_2011_sp1.6.233/bin/iccvars.sh intel64
+
+#export PATH="/opt/openmpi-1.5_intel/bin:$PATH"
+#export LD_LIBRARY_PATH=/opt/openmpi-1.5_intel/lib:$LD_LIBRARY_PATH
+export PATH="/opt/intel/bin:/opt/openmpi/bin:$PATH"
+export LD_LIBRARY_PATH=/opt/openmpi/lib:/opt/intel/composerxe/lib/intel64:/usr/lib:$LD_LIBRARY_PATH
+
+# set scratch dir
+SCRATCH=/scratch/\$SLURM_JOB_ID
+# make scratch dir
+mkdir -p \$SCRATCH || exit $?
+ 
+
+#
+# Define backup function
+#
+backup () {
+  if [ "\$1" = "-v" ]; then ekko=1; shift
+  else ekko=0;
+  fi
+  for i in \$* ; do
+     if [ -f "\${i}" ]; then
+        for j in 6 5 4 3 2 1 0 ; do
+           jp=\$((\$j+1))
+           if [ -f "\${i}.\${j}" ]; then
+              [ \$ekko -eq 1 ] && echo "Backup: renaming \${i}.\${j} to \${i}.\${jp}"
+              mv -f "\${i}.\${j}" "\${i}.\${jp}"
+           fi
+        done
+        if [ \$ekko -eq 1 ]; then echo "Backup: renaming \${i} to \${i}.0"; fi
+        mv -f "\${i}" "\${i}.0"
+     fi
+  done
+}
+
+#
+# Backup output file
+#
+backup $JOB"_"$MOL.out
+
+#
+cd $JOBDIR
+/opt/dirac/build/pam --noarch --mpi=$CORES --mb=$MEM"000" --scratch=\$SCRATCH --mol=$MOL --inp=$JOB
+
+# remove scratch dir
+rm -rf \$SCRATCH || exit $?
+
+echo ========= Job finished ===================
+!EOF
+
+sbatch $SUBMIT
+#rm -f $SUBMIT
+

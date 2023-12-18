@@ -1,0 +1,54 @@
+#!/bin/bash
+IN=$1
+CPUS=$2
+MEMPERCPU=$3
+
+# get the filename without the extension
+JOB=${IN%.*}
+
+SUBMIT=$JOB\.sh
+PWD=`pwd`
+
+sed -i "s@pal nprocs.*@pal nprocs $CPUS end@" $IN
+sed -i "s@maxcore .*@maxcore $MEMPERCPU@" $IN
+
+cat > $SUBMIT <<!EOF
+#!/bin/bash
+#SBATCH --job-name=$JOB
+#SBATCH --partition=coms
+#SBATCH --time=7-00:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=$CPUS
+#SBATCH --mem=$(($MEMPERCPU * $CPUS))
+#SBATCH --error=job.%J.err
+#SBATCH --output=job.%J.out
+
+#export ORCA_DIR=/opt/orca/3.0.3/
+export ORCA_DIR=/opt/orca/4.0.0/
+export PATH=\$ORCA_DIR:\$PATH
+
+export OMP_NUM_THREADS=$CPUS
+
+export SCRATCH_DIR=/scratch/\$SLURM_JOB_ID
+mkdir \$SCRATCH_DIR
+
+cp $PWD/$1 \$SCRATCH_DIR
+cd \$SCRATCH_DIR
+
+date
+hostname
+
+\$ORCA_DIR/orca $1 > $PWD/$JOB\.log
+
+date
+ls \$SCRATCH_DIR
+
+rm -rf \$SCRATCH_DIR
+date
+
+
+!EOF
+
+sbatch $SUBMIT
+rm $SUBMIT
+

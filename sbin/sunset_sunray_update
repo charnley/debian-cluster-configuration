@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Update local debian mirror
+apt-mirror
+
+# Update local repo from mirror
+apt-get update
+
+# Upgrade packages
+apt-get upgrade
+

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo "mdadm mdadm/initrdstart string all" |debconf-set-selections
+
+dpkg --configure -a

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+echo -n $1
+if timeout 0.2 ping -c 1 -i 0.2 $1 &> /dev/null
+then
+    ssh $1 "shutdown -hP +1 & disown" # shutdown in one minute
+    echo " shutting down"
+else
+    echo " down"
+fi
+
+# sunray room nodes
+# echo node{654..713} | parallel -j8 'update_node {}'
+# grep -oh "\w*node\w*" /etc/hosts | parallel -j8 'update_puppet {}'
+
+

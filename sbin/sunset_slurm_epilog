@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Epilog (from slurm.conf)
+# Compute or front end node
+# slurmd daemon
+# SlurmdUser (normally user root)
+# At job termination
+
+# TODO slurm conf; should slurmUser=root??
+
+##  Check that script is being run as a SLURM prolog
+if [ "x$SLURM_UID" = "x" ]; then
+    echo "error: must be called by slurm" 1>&2
+    exit 1
+fi
+
+if [ "x$SLURM_JOB_ID" = "x" ]; then
+    echo "error: must be called by slurm" 1>&2
+    exit 1
+fi
+
+# Clean scratch folder
+# Stolen from steno guys!
+SCRATCH=/scratch/$SLURM_JOB_ID
+if [ -d $SCRATCH ]; then
+    if ! /bin/rm -rf $SCRATCH; then
+        sleep 5
+        if ! /bin/rm -rf $SCRATCH; then
+            /sbin/fuser -km $SCRATCH
+            if ! /bin/rm -rf $SCRATCH; then
+                echo "error: cannot remove scratch directory"
+                exit 1
+            fi
+        fi
+    fi
+fi
+
+

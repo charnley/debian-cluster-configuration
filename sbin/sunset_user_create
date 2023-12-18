@@ -1,0 +1,198 @@
+#!/bin/bash
+
+
+if [ "$(id -u)" != "0" ]; then
+    echo "This script must be run as root" 1>&2
+    exit 1
+fi
+
+
+username()
+{
+    if [ "$1" == "" ]
+    then
+        msg='Write a username:  (No big letters and No Spaces)'
+    else
+        msg=$1
+    fi
+
+    USERNAME=$(whiptail --inputbox "$msg" 8 78  --title "Username" 3>&1 1>&2 2>&3)
+    exitstatus=$?
+
+    if [ $exitstatus = 0 ]; then
+        # Check if username exists
+        if id -u $USERNAME >/dev/null 2>&1; then
+            username "$USERNAME already exists! Try again:"
+        fi
+    else
+        echo "User selected Cancel."
+        exit 4
+    fi
+}
+
+
+### BEGIN FORM ###
+##
+## - username
+## - email
+## - office
+## - phone
+## - comment
+
+## - groups (or comchem/visit)
+
+## - passwd
+
+# Username
+username
+echo "username:" $USERNAME
+
+
+# Full name
+NAME=$(whiptail --inputbox "" 8 78  --title "Full name" 3>&1 1>&2 2>&3)
+exitstatus=$?
+
+if [ $exitstatus = 0 ]; then
+    echo "email:" $NAME
+else
+    echo "Cancel name"
+    exit 4
+fi
+
+
+# Email
+EMAIL=$(whiptail --inputbox "" 8 78  --title "Email" 3>&1 1>&2 2>&3)
+exitstatus=$?
+
+if [ $exitstatus = 0 ]; then
+    echo "email:" $EMAIL
+else
+    echo "Cancel email."
+    exit 4
+fi
+
+
+
+# Group
+GROUP=$(whiptail --title "Group" --menu "Choose your option" 15 60 4 \
+"coms-chem" "Computational Chemistry" \
+"coms-hgk" "Henrik Kjærgaard" \
+"coms-sol" "Solvejg Jørgensen" \
+"coms-kmi" "Kurt Mikkelsen"  \
+"coms-spas" "Stephan Sauer" \
+"coms-jhj" "Jan Jensen" \
+"coms-gem" "Gemma Solomon" \
+"coms-tho" "Thorsten Hansen"  3>&1 1>&2 2>&3)
+
+exitstatus=$?
+if [ $exitstatus = 0 ]; then
+    echo "group:" $GROUP
+else
+    echo "Cancel"
+    exit 4
+fi
+
+
+# Comment
+COMMENT=$(whiptail --inputbox "" 8 78  --title "Comment" 3>&1 1>&2 2>&3)
+exitstatus=$?
+
+if [ $exitstatus = 0 ]; then
+    echo "comment:" $COMMENT
+else
+    echo "Cancel comment."
+    exit 4
+fi
+
+# Expire
+if [ "$GROUP" == "coms-chem" ]
+then
+    # comchem is from aug to april
+    # so expand by one year
+
+    year=$(date +"%Y")
+    month=$(date +"%m")
+    day=$(date +"%d")
+    expire=$((year + 1))-$month-$day
+    warndays=30
+
+    # EXPIRE
+    EXPIRE=$(whiptail --inputbox "" 8 78 $expire  --title "Expire date" 3>&1 1>&2 2>&3)
+    exitstatus=$?
+
+    if [ $exitstatus = 0 ]; then
+        echo "expire:" $EXPIRE
+    else
+        echo "Cancel expire."
+        exit 4
+    fi
+fi
+
+# TODO make user
+# TODO set passwd
+
+# usermod -g $GROUP $USERNAME
+# usermod -p $NAME $USERNAME
+# usermod -SHELL
+
+# Is information correct?
+read -p "Are you sure? Cancel if not (ctrl+c)" -n 1 -r
+
+
+## ADD USER
+
+set -x #echo on
+
+#   -g, --gid GROUP               name or ID of the primary group of the new account
+#   -m, --create-home             create the user's home directory
+#   -s, --shell SHELL             login shell of the new account
+useradd -g sunshine -m --shell /bin/bash $USERNAME
+
+# -f, --full-name FULL_NAME     change user's full name
+chfn -f "$NAME" $USERNAME
+
+# -h, --home-phone HOME_PHONE   change user's home phone number
+chfn -h "$EMAIL" $USERNAME
+
+# -o, --other OTHER_INFO        change user's other GECOS information
+chfn -o "$COMMENT" $USERNAME
+
+# -r, --room ROOM_NUMBER        change user's room number
+# chfn -w "$ROOM" $USERNAME
+
+# -w, --work-phone WORK_PHONE   change user's office phone number
+# chfn -w "$PHONE" $USERNAME
+
+#   -p, --password PASSWORD       use encrypted password for the new password
+usermod -p "" $USERNAME # remove password
+
+#  -a, --append                  append the user to the supplemental GROUPS
+#  -G, --groups GROUPS           new list of supplementary GROUPS
+usermod -a -G $GROUP $USERNAME
+usermod -a -G sunshine $USERNAME
+
+#  -d, --lastday LAST_DAY        set date of last password change to LAST_DAY
+chage -d 0 $USERNAME
+
+#  -W, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS
+chage -W 30 $USERNAME
+
+if [ -n "$EXPIRE" ]
+then
+#  -E, --expiredate EXPIRE_DATE  set account expiration date to EXPIRE_DATE
+chage -E $EXPIRE $USERNAME
+fi
+
+# set passwd for username
+passwd $USERNAME
+
+# make directory open for everyone
+chmod g+rx /home/$USERNAME
+
+
+if [ -d /home/$USERNAME ]
+then
+    # update yp
+    make -C /var/yp
+fi
+

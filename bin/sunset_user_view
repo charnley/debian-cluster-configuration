@@ -1,0 +1,175 @@
+#!/usr/bin/python2.7 -S
+
+
+import os
+import sys
+import subprocess
+from optparse import OptionParser
+
+sys.setdefaultencoding("utf-8")
+import site
+
+# TODO print all, sort by group
+# TODO print expired
+
+parser = OptionParser()
+parser.add_option("-g", "--group", dest="GROUP", type="string", action="store", metavar="<group>", help="Print list users for specific VIP group")
+parser.add_option("-n", "--notgroup", dest="NOTGROUP", type="string", action="store", metavar="<group>", help="Print list without group")
+parser.add_option("-e", "--email", dest="EMAIL", default=False, action="store_true", help="Print only emails of the users")
+parser.add_option("-u", "--users", dest="USER", default=False, action="store_true", help="Print only username of the users")
+parser.add_option("-s", "--sort", dest="SORT", type="string", action="store", metavar="<group|name>", help="Sort output as name or group")
+
+options, args = parser.parse_args()
+
+VIPGROUPS = [
+             'coms-chem',
+             'coms-hgk',
+             'coms-sol',
+             'coms-spas',
+             'coms-kmi',
+             'coms-jhj',
+             'coms-gem',
+             'coms-tho',
+             'coms-vip',
+             'sudo']
+
+
+def bash(command):
+    """
+    """
+    cmd = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    return cmd.communicate()[0]
+
+
+def get_userinfo(username):
+
+    data = {}
+
+    # finger = bash('finger '+username)
+    # NOTE ^ is for beginning of line
+    passwd = bash('grep "^'+username+':" /etc/passwd').split(':')
+    groups = bash('groups '+username).split()
+    # expire = bash('chage -l '+username)
+
+    # status = expire.split('\n')[1].split(':')[-1]
+
+    # passwd manipulation
+    passwd_info = passwd[4].split(',')
+    home = passwd[5]
+
+    if len(passwd_info) < 5:
+        for i in range(len(passwd_info), 5):
+            passwd_info += ['']
+
+    # TODO Letter error!
+    # for i, item in enumerate(passwd_info):
+    #     passwd_info[i] = item.decode('latin1')
+
+    # unpack passwd_info
+    name, office, phone, email, comment = passwd_info
+
+    data['name'] = unicode(name)
+    data['office'] = office
+    data['phone'] = phone
+    data['email'] = email
+    data['comment'] = unicode(comment)
+
+    data['status'] = ''
+    data['expire'] = ''
+
+    # only look at VIP groups
+    # for the coms groups
+    data['groups'] = []
+    for group in VIPGROUPS:
+        if group in groups:
+            group_formatted = group.replace('coms-', '').upper()
+            data['groups'].append(group_formatted)
+
+    return data
+
+
+def get_allusers():
+
+    out = bash('grep "home" /etc/passwd | grep -v "/bin/false"').split('\n')
+    out = out[:-1] # last line is just \newline
+    users = []
+
+    for o in out:
+        user = o.split(':')[0]
+        users.append(user)
+
+    return users
+
+
+def get_group(groupname):
+
+    groupname = groupname.lower()
+    groupname = 'coms-'+groupname
+
+    users = []
+    out = bash('grep "'+groupname+'" /etc/group ')
+
+    users = out.split(':')[-1]
+    users = users.replace('\n', '')
+    users = users.split(',')
+
+    return users
+
+
+if __name__ == '__main__':
+
+    if options.GROUP:
+        users = get_group(options.GROUP)
+
+    else:
+        users = get_allusers()
+
+
+    if options.EMAIL:
+
+        email_string = ''
+
+        for user in users:
+
+            # user info
+            ui = get_userinfo(user)
+            email_string += ui['email']
+            email_string += ', '
+
+        print email_string
+        quit()
+
+
+    if options.USER:
+
+        user_string = ''
+
+        for user in users:
+
+            # user info
+            user_string += user
+            user_string += ' '
+
+        print user_string
+        quit()
+
+
+
+    if True:
+
+        user_string = u"{0:17s}{1:32s}{2:35s}{3:10s}{4:10s}"
+        print user_string.format("User", "Name", "Email",  "Groups", "Comment")
+        print "-"*20*5
+
+        for user in users:
+
+            # user info
+            ui = get_userinfo(user)
+
+            groups = ''
+            for group in ui['groups']:
+                groups += str(group) + ' '
+
+            print user_string.format(user, ui['name'], ui['email'], groups, ui['comment'])
+
+

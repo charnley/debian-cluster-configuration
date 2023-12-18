@@ -1,0 +1,75 @@
+#!/bin/bash
+
+# if [ "$(id -u)" != "0" ]; then
+#     echo "This script must be run as root" 1>&2
+#     exit 1
+# fi
+
+# echo "not finished"
+# exit 4
+
+if [ $# != 1 ]; then
+    echo "Usage: ./user_move <username> [group]"
+    exit 4
+fi
+
+username=$1
+group=$2
+
+# Group
+GROUP=$(whiptail --title "Group" --menu "Choose your option" 15 60 4 \
+"coms-chem" "Computational Chemistry" \
+"coms-hgk" "Henrik Kjærgaard" \
+"coms-sol" "Solvejg Jørgensen" \
+"coms-kmi" "Kurt Mikkelsen"  \
+"coms-spas" "Stephan Sauer" \
+"coms-jhj" "Jan Jensen" \
+"coms-gem" "Gemma Solomon" \
+"coms-tho" "Thorsten Hansen"  3>&1 1>&2 2>&3)
+
+exitstatus=$?
+if [ $exitstatus = 0 ]; then
+    echo "group:" $GROUP
+else
+    echo "Cancel"
+    exit 4
+fi
+
+GROUPS=whiptail --title "Group for $username" --checklist "Choose:" 20 78 15 \
+"coms-chem" "Computational Chemistry" off \
+"coms-hgk" "Henrik Kjærgaard" off \
+"coms-sol" "Solvejg Jørgensen" off \
+"coms-kmi" "Kurt Mikkelsen"  off \
+"coms-spas" "Stephan Sauer" off \
+"coms-jhj" "Jan Jensen" off \
+"coms-gem" "Gemma Solomon" off \
+
+
+# https://stackoverflow.com/questions/2559076/how-do-i-redirect-output-to-a-variable-in-shell
+# use
+# if test
+# istead of
+# if [
+
+whiptail --title "Test" --checklist --separate-output "Choose:" 20 78 15 \
+"John" "" on \
+"Glen" "" off \
+"Adam" "" off 2>results
+
+while read choice
+do
+    case $choice in
+        John) echo "You chose John"
+        ;;
+        Glen) echo "You chose Glen"
+        ;;
+        Adam) echo "You chose Adam"
+        ;;
+        *)
+        ;;
+    esac
+done < results
+
+
+# usermod -a -G sunshine $USERNAME
+

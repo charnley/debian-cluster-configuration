@@ -1,0 +1,11 @@
+#!/bin/bash
+
+
+active_jobs=`squeue | awk :`
+
+# TODO Get active job list
+
+# TODO Delete all folders not equal to active job id
+
+# TODO if parameter --force, then delete all folders
+

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+update_puppet() {
+    echo -n $1
+    if timeout 0.2 ping -c 1 -i 0.2 $1 &> /dev/null
+    then
+        echo " puppet"
+
+        if ! ssh $1 "puppet agent --test >> ~/puppet-node.log"
+        then 
+            # ssh $1 "./clean_puppet_cert"
+            # puppet cert clean $1
+            # ssh $1 "puppet agent --test >> ~/puppet-node.log"
+        fi
+    else
+        echo " down"
+    fi
+}
+
+export -f update_puppet
+
+grep -oh "\w*node\w*" /etc/hosts | parallel -j8 'update_puppet {}'
+

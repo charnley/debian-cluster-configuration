@@ -1,0 +1,73 @@
+#!/bin/bash
+IN=$1
+#GENBAS=$2
+GENBAS="GENBAS"
+
+# get the filename without the extension
+JOB=${IN%.*}
+
+SUBMIT=qsub.tmp
+PWD=`pwd`
+
+NCPUS=1
+QUEUE=teach     #teach, coms or sauer
+
+cat > $SUBMIT <<!EOF
+#!/bin/bash
+
+#SBATCH --job-name=$JOB
+#SBATCH -e `pwd`/logfile.err
+#SBATCH -o `pwd`/logfile.err
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=$NCPUS
+#SBATCH -t 10:00:00
+#SBATCH -p $QUEUE
+
+# set scratch dir
+SCRATCH=/scratch/\$SLURM_JOB_ID
+# make scratch dir
+mkdir -p \$SCRATCH || exit $?
+
+export CFOUR=/opt/cfour
+export PATH=".:$PATH:\$SCRATCH"
+
+# JCK changed
+export CFOUR_NUM_CORES=$NCPUS
+
+# head into scratch dir and copy executables,
+# basis set and input file
+cd \$SCRATCH
+cp \$CFOUR/bin/* .
+cp $PWD/$JOB.inp ZMAT
+#cp $PWD/$GENBAS GENBAS
+cp \$CFOUR/basis/GENBAS .
+cp \$CFOUR/basis/ECPDATA .
+
+paratype="serial"
+workdir=\$SCRATCH
+global_workdisk=\$SCRATCH
+outdir=$PWD
+
+input="ZMAT"
+qsubsys="none"
+submitdir=$PDW
+jobid=$PBS_JOBID
+nodefile="nodefile"
+echo \`hostname\` > nodefile
+
+# execute
+echo "===== Running on \`hostname\` ====="
+date
+./xcfour ./ZMAT ./GENBAS > $PWD/$JOB.out
+
+echo
+echo "===== Finished on \`hostname\` ====="
+date
+
+# remove scratch dir
+rm -rf \$SCRATCH || exit $?
+
+!EOF
+
+sbatch $SUBMIT
+rm $SUBMIT

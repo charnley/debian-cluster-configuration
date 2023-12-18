@@ -1,0 +1,38 @@
+#!/bin/bash
+
+JOB=${1%.*}
+
+
+SUBMIT=qsub.tmp
+
+PWD=`pwd`
+
+
+PARTITION=coms # sauer or coms or teach
+TIME=10:00:00
+NCPUS=1
+NNODES=1
+
+
+cat > $SUBMIT <<!EOF
+#!/bin/sh
+#SBATCH --job-name=$JOB
+#SBATCH --nodes=$NNODES
+#SBATCH --cpus-per-task=$NCPUS
+#SBATCH --ntasks=$NNODES
+#SBATCH --error=$PWD/$JOB\_%j.err
+#SBATCH --output=$PWD/$JOB\_%j.out
+#SBATCH --time=$TIME
+#SBATCH --partition=$PARTITION
+#SBATCH --no-requeue
+
+cd $PWD
+
+export MOPAC=/opt/mopac/mopac.sh
+srun \$MOPAC $JOB
+
+!EOF
+
+sbatch $SUBMIT
+
+

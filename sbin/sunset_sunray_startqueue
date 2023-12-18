@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# if, god forbid, sunrayy is restarted, you need to start the services again
+
+# is not started by it itself;
+service munge start
+
+# then restart slurm
+service slurmctld restart
+

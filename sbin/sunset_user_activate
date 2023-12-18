@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# NOTE activate a comchem user and add it too a group
+
+if [ "$(id -u)" != "0" ]; then
+    echo "This script must be run as root" 1>&2
+    exit 1
+fi
+
+if [ $# != 1 ]; then
+    echo "Usage: ./activate <username>"
+    exit 4
+fi
+
+username=$1
+
+# TODO ask for new retire date
+sudo chage -E -1 $username
+
+# TODO remove from comchem
+# TODO add to new group
+
+make -C /var/yp
+

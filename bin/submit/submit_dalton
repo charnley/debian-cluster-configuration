@@ -1,0 +1,74 @@
+#!/bin/bash
+INDAL=$1
+INMOL=$2
+
+# get the filename without the extension
+DAL=${INDAL%.*}
+MOL=${INMOL%.*}
+
+SUBMIT=qsub.tmp
+JOB=$DAL"_"$MOL
+
+PARTITION=coms # sauer or coms or teach
+TIME=10:00:00
+
+NCPUS=1
+
+cat > $SUBMIT <<!EOF
+#!/bin/bash
+
+#SBATCH --job-name=$JOB
+#SBATCH -e `pwd`/logfile.err
+#SBATCH -o `pwd`/logfile.err
+#SBATCH --cpus-per-task=$NCPUS
+#SBATCH --ntasks=1
+#SBATCH --time=$TIME
+#SBATCH --partition=$PARTITION
+#SBATCH --no-requeue
+
+# set scratch dir
+SCRATCH=/scratch/\$SLURM_JOB_ID
+# make scratch dir
+mkdir -p \$SCRATCH || exit $?
+export DALTON_TMPDIR=\$SCRATCH
+echo \$DALTON_TMPDIR
+export DALTON_NUM_MPI_PROCS=1
+
+#
+# Define backup function
+#
+backup () {
+  if [ "\$1" = "-v" ]; then ekko=1; shift
+  else ekko=0;
+  fi
+  for i in \$* ; do
+     if [ -f "\${i}" ]; then
+        for j in 6 5 4 3 2 1 0 ; do
+           jp=\$((\$j+1))
+           if [ -f "\${i}.\${j}" ]; then
+              [ \$ekko -eq 1 ] && echo "Backup: renaming \${i}.\${j} to \${i}.\${jp}"
+              mv -f "\${i}.\${j}" "\${i}.\${jp}"
+           fi
+        done
+        if [ \$ekko -eq 1 ]; then echo "Backup: renaming \${i} to \${i}.0"; fi
+        mv -f "\${i}" "\${i}.0"
+     fi
+  done
+}
+
+source /home/sauer/.openmpi
+backup $JOB.out
+/opt/dalton/build/dalton -noarch -M 2000 -t \$SCRATCH -d -o $JOB.out $DAL $MOL 
+
+
+# remove scratch dir
+rm -rf \$SCRATCH || exit $?
+
+
+
+echo ========= Job finished ===================
+!EOF
+
+sbatch $SUBMIT
+rm -f $SUBMIT
+

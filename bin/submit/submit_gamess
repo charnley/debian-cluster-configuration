@@ -1,0 +1,59 @@
+#!/bin/bash
+
+JOB=${1%.*}
+
+
+SUBMIT=qsub.tmp
+
+PWD=`pwd`
+
+
+PARTITION=teach # sauer or coms or teach
+
+NCPUS=1
+NNODES=1
+
+# GAMESS
+VERSION=00
+
+
+cat > $SUBMIT <<!EOF
+#!/bin/sh
+#SBATCH --job-name=$JOB
+#SBATCH --nodes=$NNODES
+#SBATCH --cpus-per-task=$NCPUS
+#SBATCH --ntasks=$NNODES
+#SBATCH --error=/home/$USER/log/$JOB\_%j.err
+#SBATCH --output=/home/$USER/log/$JOB\_%j.out
+#SBATCH --time=10:00:00
+#SBATCH --partition=$PARTITION
+#SBATCH --no-requeue
+#SBATCH --mem=12000
+
+# Create scratch folder
+mkdir /scratch/\$SLURM_JOB_ID
+
+cd $PWD
+touch $PWD/$JOB.log
+
+date > $PWD/$JOB.log
+hostname >> $PWD/$JOB.log
+
+echo \$SLURM_JOB_NODELIST >> $PWD/$JOB.log
+
+# Run GAMESS
+# export GMS=/home/charnley/opt/gamess/grimme/rungms_slurm
+# export GMS=/opt/gamess/dftb/rungms_slurm
+# export GMS=/opt/gamess/git/rungms
+export GMS=/opt/gamess/github-2017-09-26/rungms
+
+srun \$GMS $JOB >> $JOB.log
+
+# Remove scratch folder
+rm -r /scratch/\$SLURM_JOB_ID
+
+!EOF
+
+sbatch $SUBMIT
+
+
